@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Printer, Download, Loader2 } from 'lucide-react';
+import { X, Printer, Download, Loader2, Share2 } from 'lucide-react';
 import { Order, ShopDetails } from '../types';
 import html2canvas from 'html2canvas';
 
@@ -13,6 +13,7 @@ interface ReceiptModalProps {
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, onClose, autoPrint = false }) => {
   const [isPrinting, setIsPrinting] = useState(autoPrint);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handlePrint = () => {
     const content = document.getElementById('printable-receipt');
@@ -38,14 +39,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
           <head>
             <title>Receipt-${order?.id}</title>
             <style>
-              @page { size: auto; margin: 0; }
+              @page { size: 80mm auto; margin: 0; }
               body { 
                 margin: 0; 
-                padding: 15px; 
+                padding: 10px; 
                 font-family: 'Courier New', Courier, monospace; 
                 color: #000; 
                 background: #fff;
-                width: 300px;
+                width: 72mm; /* standard 80mm paper printable area */
                 font-size: 12px;
               }
               .print-wrapper { width: 100%; }
@@ -84,7 +85,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
               .py-1 { padding: 4px 0; }
               .py-2 { padding: 8px 0; }
               .whitespace-pre-wrap { white-space: pre-wrap; }
-              .leading-tight { leading: 1.2; }
+              .leading-tight { line-height: 1.2; }
               .tracking-widest { letter-spacing: 0.1em; }
               table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
               th { border-bottom: 1px solid #000; }
@@ -116,16 +117,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
           iframe.contentWindow?.print();
           
           setTimeout(() => {
-              document.body.removeChild(iframe);
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
               setIsPrinting(false);
               if (autoPrint) {
                   onClose();
               }
           }, 500);
-        }, 300);
+        }, 500);
       };
 
-      // Ensure images are loaded before printing to avoid blank segments
       const images = doc.getElementsByTagName('img');
       if (images.length === 0) {
         triggerPrint();
@@ -151,7 +153,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
     if (autoPrint && order) {
       const timer = setTimeout(() => {
           handlePrint();
-      }, 800);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [autoPrint, order]);
@@ -183,6 +185,54 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
     }
   };
 
+  const handleShare = async () => {
+    const element = document.getElementById('printable-receipt');
+    if (!element || !navigator.share) {
+        alert("Sharing not supported on this browser.");
+        return;
+    }
+
+    setIsSharing(true);
+    const originalStyle = element.style.cssText;
+    element.style.background = 'white';
+    element.style.padding = '20px'; 
+    element.style.width = '350px'; 
+    element.style.margin = '0 auto';
+
+    try {
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false,
+            useCORS: true
+        });
+        
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (!blob) throw new Error("Canvas to Blob failed");
+
+        const file = new File([blob], `Receipt_${order?.id}.png`, { type: 'image/png' });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: `Receipt #${order?.id}`,
+                text: `Receipt from ${shopDetails.name}`
+            });
+        } else {
+            await navigator.share({
+                title: `Receipt #${order?.id}`,
+                text: `Receipt ID: ${order?.id}\nTotal: ₹${order?.total.toFixed(2)}\nFrom: ${shopDetails.name}`,
+                url: window.location.href
+            });
+        }
+    } catch (err) {
+        console.error("Sharing failed", err);
+    } finally {
+        element.style.cssText = originalStyle;
+        setIsSharing(false);
+    }
+  };
+
   if (!order) return null;
   const subTotal = order.total - (order.taxTotal || 0);
 
@@ -195,11 +245,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
               {isPrinting && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1"><Loader2 size={10} className="animate-spin"/> Printing...</span>}
           </div>
           <div className="flex gap-2">
-             <button onClick={handleDownload} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">
-              <Download size={16} /> Save
+            <button onClick={handleShare} disabled={isSharing} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 text-sm font-medium rounded-lg hover:bg-purple-100 transition-colors">
+              {isSharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />} 
+              <span className="hidden sm:inline">Share</span>
+            </button>
+            <button onClick={handleDownload} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors">
+              <Download size={16} /> <span className="hidden sm:inline">Save</span>
             </button>
             <button onClick={handlePrint} disabled={isPrinting} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70">
-              <Printer size={16} /> Print
+              <Printer size={16} /> <span className="hidden sm:inline">Print</span>
             </button>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100 rounded-lg transition-colors">
               <X size={20} />
@@ -230,67 +284,4 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
                     <span>{new Date(order.date).toLocaleString()}</span>
                 </div>
                 {order.customer && (
-                    <div className="mt-2 text-[10px] text-black border-t border-dashed border-slate-300 pt-2">
-                        {order.customer.name && <div>Cust: {order.customer.name}</div>}
-                        {order.customer.phone && <div>Ph: {order.customer.phone}</div>}
-                    </div>
-                )}
-                <div className="border-t border-dashed border-black my-2"></div>
-                <table className="w-full text-xs mb-2">
-                    <thead className="text-black">
-                    <tr>
-                        <th className="text-left py-1">#</th>
-                        <th className="text-left py-1">Item</th>
-                        <th className="text-center py-1">Qty</th>
-                        <th className="text-right py-1">Amt</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {order.items.map((item, index) => (
-                        <tr key={`${item.id}-${index}`}>
-                        <td className="py-1 text-black align-top pr-1 text-[10px]">{index + 1}</td>
-                        <td className="py-1 text-black align-top">{item.name}</td>
-                        <td className="py-1 text-center text-black align-top">{item.qty}</td>
-                        <td className="py-1 text-right font-medium text-black align-top">{(item.price * item.qty).toFixed(2)}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-                <div className="border-t border-dashed border-black my-2"></div>
-                <div className="space-y-1 text-xs text-black">
-                    <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span>{subTotal.toFixed(2)}</span>
-                    </div>
-                    {shopDetails.taxEnabled ? (
-                        <div className="flex justify-between">
-                        <span>Tax Total</span>
-                        <span>{order.taxTotal.toFixed(2)}</span>
-                        </div>
-                    ) : (
-                        <div className="flex justify-between text-slate-400">
-                        <span>Tax</span>
-                        <span>0.00</span>
-                        </div>
-                    )}
-                    <div className="flex justify-between text-sm font-bold pt-2 mt-1 border-t border-black">
-                    <span>TOTAL</span>
-                    <span>₹{order.total.toFixed(2)}</span>
-                    </div>
-                </div>
-                <div className="mt-6 text-center space-y-4">
-                    {shopDetails.showPaymentQr && shopDetails.paymentQrCode && (
-                        <div className="flex flex-col items-center gap-1">
-                            <p className="text-[10px] font-bold text-black uppercase">Scan to Pay</p>
-                            <img src={shopDetails.paymentQrCode} alt="Payment QR" className="w-24 h-24 border border-black p-1" />
-                        </div>
-                    )}
-                    <p className="text-[10px] text-black whitespace-pre-wrap">{shopDetails.footerMessage}</p>
-                    <p className="text-[8px] text-black pt-2 opacity-50 uppercase tracking-widest">{shopDetails.poweredByText || 'Powered by SmartPOS'}</p>
-                </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+                    <div className="mt-2 text-[10px] text-black border-t border
