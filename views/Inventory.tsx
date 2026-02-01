@@ -182,7 +182,7 @@ export const Inventory: React.FC<InventoryProps> = ({
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto scroll-gpu">
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
         <div>
           <div className="flex items-center gap-3">
@@ -201,7 +201,6 @@ export const Inventory: React.FC<InventoryProps> = ({
         </div>
         
         <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-            {/* Search Bar */}
             <div className="relative flex-grow min-w-[240px] xl:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
@@ -236,7 +235,7 @@ export const Inventory: React.FC<InventoryProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden optimize-gpu">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
@@ -260,13 +259,13 @@ export const Inventory: React.FC<InventoryProps> = ({
               const isOut = product.stock <= 0;
 
               return (
-                <tr key={product.id} className={`transition-colors ${isOut ? 'bg-red-50/20' : isLow ? 'bg-orange-50/20' : 'hover:bg-slate-50'}`}>
+                <tr key={product.id} className={`transition-colors content-auto ${isOut ? 'bg-red-50/20' : isLow ? 'bg-orange-50/20' : 'hover:bg-slate-50'}`} style={{ containIntrinsicSize: '0 80px' }}>
                   <td className="px-6 py-4 flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200">
-                      {product.image ? <img src={product.image} className="w-full h-full object-cover" /> : <ImageIcon size={20} className="text-slate-400" />}
+                    <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 shrink-0">
+                      {product.image ? <img src={product.image} className="w-full h-full object-cover" loading="lazy" decoding="async" /> : <ImageIcon size={20} className="text-slate-400" />}
                     </div>
-                    <div className="flex flex-col">
-                        <span className="font-bold text-slate-800">{product.name}</span>
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-800 truncate">{product.name}</span>
                         <span className="text-[10px] text-slate-400 max-w-[200px] truncate">{product.description || 'Synced to cloud'}</span>
                     </div>
                   </td>
@@ -315,14 +314,14 @@ export const Inventory: React.FC<InventoryProps> = ({
               <button onClick={resetForm} className="text-slate-400 hover:text-slate-900 p-2 hover:bg-slate-200 rounded-full"><X size={24} /></button>
             </div>
             
-            <form className="p-8 space-y-6 overflow-y-auto">
+            <form className="p-8 space-y-6 overflow-y-auto scroll-gpu">
               <div className="grid grid-cols-2 gap-6">
                 <div className="col-span-2">
                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Product Image</label>
                    <div className="flex items-center gap-4">
                       <div className="w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
                          {currentProduct.image ? (
-                           <img src={currentProduct.image} className="w-full h-full object-cover" />
+                           <img src={currentProduct.image} className="w-full h-full object-cover" decoding="async" />
                          ) : (
                            <ImageIcon size={32} className="text-slate-200" />
                          )}

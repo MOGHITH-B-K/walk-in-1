@@ -43,6 +43,7 @@
         scroll-behavior: smooth;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
       
       body { 
@@ -50,6 +51,7 @@
         margin: 0; 
         background-color: #f8fafc; 
         overflow: hidden; /* Prevent double scrollbars on the body */
+        overscroll-behavior-y: none;
       }
 
       /* Premium Custom Scrollbar */
@@ -68,15 +70,26 @@
       }
       ::-webkit-scrollbar-thumb:hover { 
         background: #94a3b8; 
-        border: 2px solid transparent;
-        background-clip: content-box;
       }
 
-      /* Performance Hints for Scrollable Areas */
+      /* Hardware Acceleration and Layout Containment for lag-free UI */
       .scroll-gpu {
         transform: translateZ(0);
-        will-change: scroll-position;
+        will-change: transform, scroll-position;
         backface-visibility: hidden;
+        perspective: 1000px;
+        contain: layout style;
+      }
+
+      .optimize-gpu {
+        transform: translate3d(0, 0, 0);
+        will-change: transform;
+      }
+
+      /* Intelligent Row Rendering for Lists */
+      .content-auto {
+        content-visibility: auto;
+        contain-intrinsic-size: 0 100px;
       }
 
       #root:empty::before {

@@ -16,21 +16,23 @@ export const ProductCard = memo<ProductCardProps>(({ product, onAdd }) => {
   return (
     <div 
       onClick={() => !isOutOfStock && onAdd(product)}
-      className={`bg-white rounded-xl shadow-sm border p-4 transition-all group flex flex-col h-full overflow-hidden ${
+      className={`bg-white rounded-xl shadow-sm border p-4 transition-all group flex flex-col h-full overflow-hidden content-auto ${
         isOutOfStock 
           ? 'opacity-80 cursor-not-allowed border-red-200 bg-red-50/30' 
           : isLowStock
             ? 'cursor-pointer border-orange-200 hover:shadow-md hover:border-orange-300 bg-orange-50/20'
             : 'cursor-pointer border-slate-100 hover:shadow-md hover:border-blue-200'
       }`}
+      style={{ containIntrinsicSize: '0 250px' }}
     >
-      <div className="relative mb-3 h-32 -mx-4 -mt-4 bg-slate-100 flex items-center justify-center overflow-hidden">
+      <div className="relative mb-3 h-32 -mx-4 -mt-4 bg-slate-100 flex items-center justify-center overflow-hidden optimize-gpu">
         {product.image ? (
           <img 
             src={product.image} 
             alt={product.name} 
             loading="lazy"
-            className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale' : ''}`}
+            decoding="async"
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isOutOfStock ? 'grayscale opacity-60' : 'opacity-100'}`}
           />
         ) : (
           <div className={`h-16 w-16 rounded-full flex items-center justify-center font-bold text-xl ${
