@@ -238,7 +238,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
 
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col h-full max-h-[90vh]">
         <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-white shrink-0">
           <div className="flex items-center gap-2">
               <h3 className="font-bold text-lg text-slate-800">Transaction Details</h3>
@@ -261,8 +261,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
           </div>
         </div>
 
-        <div className="overflow-y-auto bg-slate-50 flex-1 p-8">
-            <div id="printable-receipt" className="max-w-[300px] mx-auto bg-white p-4 shadow-sm font-mono">
+        <div className="overflow-y-auto bg-slate-50 flex-1 p-8 flex flex-col items-center justify-start min-h-0">
+            <div id="printable-receipt" className="w-[300px] bg-white p-6 shadow-sm font-mono my-auto">
                 <div className="text-center mb-4">
                     {shopDetails.showLogo && shopDetails.logo && (
                         <div className="flex justify-center mb-2">
@@ -284,4 +284,67 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ order, shopDetails, 
                     <span>{new Date(order.date).toLocaleString()}</span>
                 </div>
                 {order.customer && (
-                    <div className="mt-2 text-[10px] text-black border-t border
+                    <div className="mt-2 text-[10px] text-black border-t border-dashed border-slate-300 pt-2">
+                        {order.customer.name && <div>Cust: {order.customer.name}</div>}
+                        {order.customer.phone && <div>Ph: {order.customer.phone}</div>}
+                    </div>
+                )}
+                <div className="border-t border-dashed border-black my-2"></div>
+                <table className="w-full text-xs mb-2">
+                    <thead className="text-black">
+                    <tr>
+                        <th className="text-left py-1">#</th>
+                        <th className="text-left py-1">Item</th>
+                        <th className="text-center py-1">Qty</th>
+                        <th className="text-right py-1">Amt</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {order.items.map((item, index) => (
+                        <tr key={`${item.id}-${index}`}>
+                        <td className="py-1 text-black align-top pr-1 text-[10px]">{index + 1}</td>
+                        <td className="py-1 text-black align-top">{item.name}</td>
+                        <td className="py-1 text-center text-black align-top">{item.qty}</td>
+                        <td className="py-1 text-right font-medium text-black align-top">{(item.price * item.qty).toFixed(2)}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+                <div className="border-t border-dashed border-black my-2"></div>
+                <div className="space-y-1 text-xs text-black">
+                    <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{subTotal.toFixed(2)}</span>
+                    </div>
+                    {shopDetails.taxEnabled ? (
+                        <div className="flex justify-between">
+                        <span>Tax Total</span>
+                        <span>{order.taxTotal.toFixed(2)}</span>
+                        </div>
+                    ) : (
+                        <div className="flex justify-between text-slate-400">
+                        <span>Tax</span>
+                        <span>0.00</span>
+                        </div>
+                    )}
+                    <div className="flex justify-between text-sm font-bold pt-2 mt-1 border-t border-black">
+                    <span>TOTAL</span>
+                    <span>₹{order.total.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div className="mt-6 text-center space-y-4">
+                    {shopDetails.showPaymentQr && shopDetails.paymentQrCode && (
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-[10px] font-bold text-black uppercase">Scan to Pay</p>
+                            <img src={shopDetails.paymentQrCode} alt="Payment QR" className="w-24 h-24 border border-black p-1" />
+                        </div>
+                    )}
+                    <p className="text-[10px] text-black whitespace-pre-wrap">{shopDetails.footerMessage}</p>
+                    <p className="text-[8px] text-black pt-2 opacity-50 uppercase tracking-widest">{shopDetails.poweredByText || 'Powered by SmartPOS'}</p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};

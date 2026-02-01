@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Sparkles, Loader2, Package, Upload, Image as ImageIcon, Store, AlertTriangle, ListFilter, AlertCircle, CheckCircle2, Cloud, CloudOff, FileSpreadsheet } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, X, Sparkles, Loader2, Package, Upload, Image as ImageIcon, Store, AlertTriangle, ListFilter, AlertCircle, CheckCircle2, Cloud, CloudOff, FileSpreadsheet, Search } from 'lucide-react';
 import { Product, ShopDetails } from '../types';
 import { generateProductDetails } from '../services/gemini';
 import { dbService } from '../services/db';
@@ -32,6 +32,7 @@ export const Inventory: React.FC<InventoryProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [dbConnected] = useState(dbService.isConfigured());
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({
     name: '',
@@ -83,6 +84,16 @@ export const Inventory: React.FC<InventoryProps> = ({
     XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory");
     XLSX.writeFile(workbook, `Inventory_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
+
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    const term = searchQuery.toLowerCase();
+    return products.filter(p => 
+      p.name.toLowerCase().includes(term) || 
+      p.category.toLowerCase().includes(term) ||
+      (p.description || '').toLowerCase().includes(term)
+    );
+  }, [products, searchQuery]);
 
   const handleSubmit = async (e: React.FormEvent, shouldRedirect: boolean) => {
     e.preventDefault();
@@ -172,7 +183,7 @@ export const Inventory: React.FC<InventoryProps> = ({
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-3xl font-bold text-slate-800">Stock Management</h2>
@@ -188,25 +199,40 @@ export const Inventory: React.FC<InventoryProps> = ({
           </div>
           <p className="text-slate-500 mt-1">Add product details and set inventory thresholds.</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-            <button 
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-medium hover:bg-emerald-100 transition-all"
-            >
-              <FileSpreadsheet size={18} /> Export Excel
-            </button>
-            <button 
-              onClick={() => setIsCategoryModalOpen(true)} 
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-all"
-            >
-              <ListFilter size={18} /> Categories
-            </button>
-            <button 
-              onClick={() => { resetForm(); setIsModalOpen(true); }} 
-              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-all shadow-lg"
-            >
-              <Plus size={18} /> New Product
-            </button>
+        
+        <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-grow min-w-[240px] xl:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text"
+                placeholder="Search stock..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm transition-all"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+                <button 
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 font-medium hover:bg-emerald-100 transition-all"
+                >
+                  <FileSpreadsheet size={18} /> Export
+                </button>
+                <button 
+                  onClick={() => setIsCategoryModalOpen(true)} 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-all"
+                >
+                  <ListFilter size={18} /> Categories
+                </button>
+                <button 
+                  onClick={() => { resetForm(); setIsModalOpen(true); }} 
+                  className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  <Plus size={18} /> New Product
+                </button>
+            </div>
         </div>
       </div>
 
@@ -222,9 +248,13 @@ export const Inventory: React.FC<InventoryProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {products.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Database is empty. Add a product to get started.</td></tr>
-            ) : products.map(product => {
+            {filteredProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
+                    {searchQuery ? `No products matching "${searchQuery}"` : 'Database is empty. Add a product to get started.'}
+                  </td>
+                </tr>
+            ) : filteredProducts.map(product => {
               const threshold = product.minStockLevel || 5;
               const isLow = product.stock > 0 && product.stock <= threshold;
               const isOut = product.stock <= 0;
@@ -237,7 +267,7 @@ export const Inventory: React.FC<InventoryProps> = ({
                     </div>
                     <div className="flex flex-col">
                         <span className="font-bold text-slate-800">{product.name}</span>
-                        <span className="text-[10px] text-slate-400">{product.description || 'Verified in Cloud Database'}</span>
+                        <span className="text-[10px] text-slate-400 max-w-[200px] truncate">{product.description || 'Synced to cloud'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -287,7 +317,6 @@ export const Inventory: React.FC<InventoryProps> = ({
             
             <form className="p-8 space-y-6 overflow-y-auto">
               <div className="grid grid-cols-2 gap-6">
-                {/* Image Upload Area */}
                 <div className="col-span-2">
                    <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Product Image</label>
                    <div className="flex items-center gap-4">
