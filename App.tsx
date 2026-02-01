@@ -242,7 +242,7 @@ const App: React.FC = () => {
         </div>
       </nav>
       <main className="flex-1 overflow-hidden relative">
-        <div className="h-full overflow-y-auto scroll-smooth">
+        <div className="h-full overflow-y-auto scroll-smooth scroll-gpu">
           {view === 'pos' && (
             <POS 
                 products={products} 
